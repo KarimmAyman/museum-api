@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('museums')
-            .select('id, museum_name, created_at')
+            .select('*')
             .order('created_at', { ascending: false })
 
         if (error) {
