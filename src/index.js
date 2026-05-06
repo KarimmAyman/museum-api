@@ -15,7 +15,7 @@ app.use(express.json())
 // Health check route
 // ========================
 app.get('/', (req, res) => {
-    res.json({ status: 'ok', message: 'API is running' })
+    res.json({ status: 'ok', message: 'Museum API is running' })
 })
 
 // ========================
@@ -27,9 +27,7 @@ app.use('/museums', museumsRouter)
 // Handle 404 routes
 // ========================
 app.use((req, res) => {
-    res.status(404).json({
-        error: 'Route not found'
-    })
+    res.status(404).json({ error: 'Route not found' })
 })
 
 // ========================
@@ -38,9 +36,17 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('🔥 Server Error:', err)
 
-    res.status(500).json({
-        error: 'Internal server error'
-    })
+    // Multer file size error
+    if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Max size is 10MB.' })
+    }
+
+    // Multer file type error
+    if (err.message === 'Only image files are allowed') {
+        return res.status(400).json({ error: err.message })
+    }
+
+    res.status(500).json({ error: 'Internal server error' })
 })
 
 // ========================
