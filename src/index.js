@@ -2,7 +2,7 @@ import express from 'express'
 import 'dotenv/config'
 import cors from 'cors'
 import museumsRouter from './museums.routes.js'
-import floorsRouter from './floor.routes.js'
+import floorsRouter from './floors.routes.js'
 import journeysRouter from './journeys.routes.js'
 
 const app = express()
