@@ -129,6 +129,36 @@ router.get('/:storyId', async (req, res) => {
         return res.status(500).json({ error: 'Internal server error' })
     }
 })
+// GET /floors/:floorId/stories/:storyId/full — Get full story data with floor and museum context
+router.get('/:storyId/full', async (req, res) => {
+    try {
+        const { data: story, error } = await supabase
+            .from('stories')
+            .select(`
+                *,
+                recalibration_points (*),
+                floors (
+                    *,
+                    museums (*)
+                )
+            `)
+            .eq('id', req.params.storyId)
+            .eq('floor_id', req.params.floorId)
+            .maybeSingle()
+            
+        if (error) return res.status(500).json({ error: error.message })
+        if (!story) return res.status(404).json({ error: 'Story not found' })
+
+        // Sort recalibration points by order_index
+        if (story.recalibration_points) {
+            story.recalibration_points.sort((a, b) => a.order_index - b.order_index)
+        }
+
+        return res.json(story)
+    } catch (err) {
+        return res.status(500).json({ error: 'Internal server error' })
+    }
+})
 
 // PUT /floors/:floorId/stories/:storyId — Update story name
 router.put('/:storyId', async (req, res) => {

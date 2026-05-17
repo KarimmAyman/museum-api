@@ -135,6 +135,30 @@ router.get('/:id', async (req, res) => {
     }
 })
 
+// GET /museums/:id/full — Get museum with nested floors and nested stories
+router.get('/:id/full', async (req, res) => {
+    try {
+        const { data: museum, error } = await supabase
+            .from('museums')
+            .select(`
+                *,
+                floors (
+                    *,
+                    stories (*)
+                )
+            `)
+            .eq('id', req.params.id)
+            .maybeSingle()
+
+        if (error) return res.status(500).json({ error: error.message })
+        if (!museum) return res.status(404).json({ error: 'Museum not found' })
+
+        return res.json(museum)
+    } catch (err) {
+        return res.status(500).json({ error: 'Internal server error' })
+    }
+})
+
 // PUT /museums/:id — Update name and/or image
 router.put('/:id', upload.single('image'), async (req, res) => {
     try {
