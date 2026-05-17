@@ -2,8 +2,8 @@ import express from 'express'
 import 'dotenv/config'
 import cors from 'cors'
 import museumsRouter from './museums.routes.js'
-import floorsRouter from './floors.routes.js'
-import journeysRouter from './journeys.routes.js'
+import storiesRouter from './Stories.routes.js'
+import importMapRouter from './import.map.routes.js'
 
 const app = express()
 
@@ -11,21 +11,23 @@ const app = express()
 // Middlewares
 // ========================
 app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '50mb' }))        // large map JSONs
+app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
 // ========================
-// Health check route
+// Health check
 // ========================
 app.get('/', (req, res) => {
     res.json({
         status: 'ok',
-        message: 'Museum API is running',
-        version: '2.0.0',
+        message: 'Goia Museum API is running',
+        version: '3.0.0',
         endpoints: {
             museums: '/museums',
-            floors: '/floors/:floorId',
-            journeys: '/journeys'
+            floors: '/museums/:id/floors',
+            stories: '/museums/:museumId/floors/:floorId/stories',
+            recal: '/museums/:museumId/floors/:floorId/stories/:storyId/recalibration-points',
+            importMap: '/import-map'
         }
     })
 })
@@ -33,12 +35,17 @@ app.get('/', (req, res) => {
 // ========================
 // Routes
 // ========================
-app.use('/museums', museumsRouter)   // museums + nested floors
-app.use('/floors', floorsRouter)     // standalone floor + rooms/walls/anchors/stairs/pois
-app.use('/journeys', journeysRouter) // journeys + route-points
+app.use('/museums', museumsRouter)
+
+// Stories + recalibration points nested under floors
+// /museums/:museumId/floors/:floorId/stories/...
+app.use('/museums/:museumId/floors/:floorId/stories', storiesRouter)
+
+// Import map JSON script
+app.use('/import-map', importMapRouter)
 
 // ========================
-// Handle 404 routes
+// 404 handler
 // ========================
 app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' })
@@ -48,16 +55,11 @@ app.use((req, res) => {
 // Global error handler
 // ========================
 app.use((err, req, res, next) => {
-    console.error('🔥 Server Error:', err)
-
-    if (err.code === 'LIMIT_FILE_SIZE') {
+    console.error('Server Error:', err)
+    if (err.code === 'LIMIT_FILE_SIZE')
         return res.status(400).json({ error: 'File too large. Max size is 10MB.' })
-    }
-
-    if (err.message === 'Only image files are allowed') {
+    if (err.message === 'Only image files are allowed')
         return res.status(400).json({ error: err.message })
-    }
-
     res.status(500).json({ error: 'Internal server error' })
 })
 
@@ -65,7 +67,6 @@ app.use((err, req, res, next) => {
 // Start server
 // ========================
 const PORT = process.env.PORT || 3000
-
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`)
+    console.log(`Goia API v3.0.0 running on port ${PORT}`)
 })
