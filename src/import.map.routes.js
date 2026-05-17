@@ -35,6 +35,12 @@ router.post('/', async (req, res) => {
         if (se) return res.status(500).json({ error: se.message })
         if (!story) return res.status(404).json({ error: 'Story not found' })
 
+        // ── Validate floor and get museum_id ──────────────────
+        const { data: floor, error: fe } = await supabase
+            .from('floors').select('museum_id').eq('id', story.floor_id).maybeSingle()
+        if (fe) return res.status(500).json({ error: fe.message })
+        if (!floor) return res.status(404).json({ error: 'Floor not found' })
+
         // ── Parse map JSON ────────────────────────────────────
         let mapData = map_json
         if (typeof map_json === 'string') {
@@ -86,7 +92,7 @@ router.post('/', async (req, res) => {
                 }
 
                 // Generate QR for this point
-                const qrUrl = await generateRecalibrationQR(point)
+                const qrUrl = await generateRecalibrationQR(point, floor.museum_id, story.floor_id)
 
                 // Save QR URL back
                 const { data: updated } = await supabase

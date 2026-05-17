@@ -8,10 +8,11 @@ const router = Router({ mergeParams: true }) // gets floor_id from parent
 // HELPER: Generate and upload story QR
 // payload: { story_id, floor_id }
 // ─────────────────────────────────────────
-async function generateStoryQR(story) {
+async function generateStoryQR(story, museumId) {
     const qrContent = JSON.stringify({
-        story_id: story.id,
-        floor_id: story.floor_id
+        museum_id: museumId,
+        floor_id: story.floor_id,
+        story_id: story.id
     })
     const qrBuffer = await QRCode.toBuffer(qrContent, {
         type: 'png', width: 400, margin: 2,
@@ -30,8 +31,10 @@ async function generateStoryQR(story) {
 // HELPER: Generate and upload recalibration QR
 // payload: { point_id, story_id, x, y, rotation }
 // ─────────────────────────────────────────
-async function generateRecalibrationQR(point) {
+async function generateRecalibrationQR(point, museumId, floorId) {
     const qrContent = JSON.stringify({
+        museum_id: museumId,
+        floor_id: floorId,
         point_id: point.id,
         story_id: point.story_id,
         x: point.x,
@@ -78,7 +81,7 @@ router.post('/', async (req, res) => {
 
         // Auto-generate story QR
         try {
-            const qrUrl = await generateStoryQR(story)
+            const qrUrl = await generateStoryQR(story, req.params.museumId)
             const { data: updated } = await supabase
                 .from('stories').update({ qr_image: qrUrl })
                 .eq('id', story.id).select().single()
@@ -167,7 +170,7 @@ router.post('/:storyId/regenerate-qr', async (req, res) => {
         if (error) return res.status(500).json({ error: error.message })
         if (!story) return res.status(404).json({ error: 'Story not found' })
 
-        const qrUrl = await generateStoryQR(story)
+        const qrUrl = await generateStoryQR(story, req.params.museumId)
         const { data: updated, error: ue } = await supabase
             .from('stories').update({ qr_image: qrUrl })
             .eq('id', story.id).select().single()
@@ -202,7 +205,7 @@ router.post('/:storyId/recalibration-points', async (req, res) => {
 
         // Auto-generate QR for this point
         try {
-            const qrUrl = await generateRecalibrationQR(point)
+            const qrUrl = await generateRecalibrationQR(point, req.params.museumId, req.params.floorId)
             const { data: updated } = await supabase
                 .from('recalibration_points').update({ qr_image: qrUrl })
                 .eq('id', point.id).select().single()
@@ -286,7 +289,7 @@ router.post('/:storyId/recalibration-points/:pointId/regenerate-qr', async (req,
         if (error) return res.status(500).json({ error: error.message })
         if (!point) return res.status(404).json({ error: 'Point not found' })
 
-        const qrUrl = await generateRecalibrationQR(point)
+        const qrUrl = await generateRecalibrationQR(point, req.params.museumId, req.params.floorId)
         const { data: updated, error: ue } = await supabase
             .from('recalibration_points').update({ qr_image: qrUrl })
             .eq('id', point.id).select().single()
